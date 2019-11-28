@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: es
+  namespace: elk
+spec:
+  ports:
+  - name: p2
+    port: 9200
+  - name: p3
+    port: 9300
+  selector:
+    app: elasticsearch
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: StatefulSet 
+metadata:
+  name: elasticsearch
+  namespace: elk
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch
+  serviceName: "es"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: elasticsearch 
+    spec:
+      hostname: elasticsearch
+      containers:
+      - name: elasticsearch-ct
+        image: docker.elastic.co/elasticsearch/elasticsearch:6.3.1 
+        ports:
+        - containerPort: 9200 
+        - containerPort: 9300
+        env:
+        - name: "ES_JAVA_OPTS"
+          value: "-Xms384m -Xmx384m"
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data 
+          name: elasticsearch-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-pvc
+<<<<<<< HEAD
+      namespace: elk
+    spec:
+      storageClassName: standard
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 20Gi
+=======
+      annotations:
+        volume.beta.kubernetes.io/storage-class: "nfs"
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+>>>>>>> d6a0df20c92a9177012385b8adf451ded50fa8f4

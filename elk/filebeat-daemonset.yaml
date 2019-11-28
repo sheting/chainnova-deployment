@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: DaemonSet 
+metadata:
+  name: system-logs
+  namespace: elk
+spec:
+  selector:
+    matchLabels: 
+      app: filebeat
+  template:
+    metadata:
+      labels:
+        app: filebeat
+    spec:
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:7.2.0
+        args: [
+          "-c", "/etc/filebeat.yml",
+          "-e",
+        ]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: filebeat-config
+          mountPath: /etc/filebeat.yml
+          subPath: filebeat.yml
+        - name: docker-log
+          mountPath: /home/ubuntu/opt/docker/
+        - name: pods-log
+          mountPath: /var/log/pods/
+        - name: k8s-log
+          mountPath: /var/log/containers/
+      volumes:
+      - name: docker-log
+        hostPath: 
+          path: /home/ubuntu/opt/docker/
+      - name: pods-log
+        hostPath: 
+          path: /var/log/pods/
+      - name: k8s-log
+        hostPath: 
+          path: /var/log/containers/
+      - name: filebeat-config
+        configMap:
+          name: filebeat-dimpleblog-config

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-dimpleblog-config
+  namespace: elk 
+data:
+  filebeat.yml: |-
+    filebeat.inputs: 
+      - type: log
+        paths:
+          - /var/log/containers/*.log
+        fields:
+          name: dimpleblog
+          type: dimpleblog-info
+        fields_under_root: true
+        symlinks: true
+        multiline:
+          pattern: '^\s+'
+          negate: false
+          match: after
+
+    output.logstash:
+      hosts: ['logstash-0.ls:5044']

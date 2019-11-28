@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    api-version: v1
+    server: "https://rancher.test.chainnova.xyz:4443/r/projects/1a2489/kubernetes:6443"
+  name: "saas-test"
+contexts:
+- context:
+    cluster: "saas-test"
+    user: "saas-test"
+  name: "saas-test"
+current-context: "saas-test"
+users:
+- name: "saas-test"
+  user:
+    token: "QmFzaWMgTTBFMk9UZEJSa1l6TXprek1UWkJRa1U0T1RZNlJWZHpaRWh5VFZCS1VEVnVVazEwTjFSeU9IZDRkVFJSYm1neFRGRlVWM1I1VldObmNWRnllQT09"

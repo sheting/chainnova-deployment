@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-configmap
+data:
+  simple.yml: |-
+    global:
+      smtp_smarthost: 'smtp.163.com:25'          #163邮箱服务器
+      smtp_from: 'xxx@163.com'                   #发送邮件的邮箱
+      smtp_auth_username: 'xxx@163.com'          #发送邮件的邮箱用户名(same as smtp_from as usual)
+      smtp_auth_password: 'xxxxxx'               #发送邮件的邮箱密码或者授权码
+    route:
+      receiver: 'dingtalk-webhook'
+      group_by: ['job']
+    receivers:
+    - name: 'dingtalk-webhook'
+      webhook_configs:
+      - url: 'http://localhost:8060/dingtalk/webhook1/send'
+    - name: 'testmail'                           #receiver名称
+      email_configs:
+      - to: 'xxx@chainnova.com'                  #接收邮件的邮箱
+        headers: { Subject: "[WARN] test mail" } #告警邮件头信息   

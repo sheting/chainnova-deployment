@@ -1,0 +1,41 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: nfs-provisioner
+  namespace: zk
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-provisioner
+    spec:
+      containers:
+        - name: nfs-provisioner
+          image: registry.cn-hangzhou.aliyuncs.com/open-ali/nfs-client-provisioner
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: chainnova/nfs
+            - name: NFS_SERVER
+              value: {{(datasource "common-config").Nfs_server}}
+            - name: NFS_PATH
+              value: {{(datasource "common-config").StorageClass_nfs_path}}
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: {{(datasource "common-config").Nfs_server}}
+            path: {{(datasource "common-config").StorageClass_nfs_path}}
+
+---
+
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: nfs
+#  namespace: zk
+provisioner: chainnova/nfs

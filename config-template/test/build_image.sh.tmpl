@@ -1,0 +1,70 @@
+#!/bin/bash
+
+START=$(date +"%s")
+
+#REPOSITORY & TAG
+REPOSITORY="baas/mysql"
+if [ $1 ]; then
+    TAG="0.0.1-"$1
+else
+    TAG="0.0.1"
+fi
+
+#IMAGE LOCAL & HUB
+IMAGE_LOCAL="$REPOSITORY:$TAG"
+IMAGE_HUB="{{(datasource "baas-config").BaaS_registry_url}}/$IMAGE_LOCAL"
+
+echo
+echo "##############################"
+echo "##### build image"
+echo "##############################"
+#remove old image
+docker rmi -f $IMAGE_LOCAL &> /dev/null
+docker images | grep -q -E "^$REPOSITORY\s+$TAG\s+"
+if [ $? == 0 ]; then
+    echo "!!!Error: Remove old image failed."
+    exit 1
+fi
+
+#copy sql command
+cp ../../../platformSrv/platformSrv.sql ./docker
+if [ $? != 0 ]; then
+    echo "!!!Error: Copy sql command failed."
+    exit 1
+fi
+
+#build image
+docker build -f ./docker/Dockerfile -t $IMAGE_LOCAL . &&
+rm ./docker/platformSrv.sql
+if [ $? != 0 ]; then
+    echo "!!!Error: Build image failed."
+    exit 1
+fi
+echo -e "\n##### $(docker images | grep -E "^$REPOSITORY\s+$TAG\s+")"
+
+BUILD_COMPLETE=$(date +"%s")
+
+echo
+echo "##############################"
+echo "##### push image"
+echo "##############################"
+#login
+docker login -u {{(datasource "baas-config").BaaS_registry_user}} -p {{(datasource "baas-config").BaaS_registry_password}} {{(datasource "baas-config").BaaS_registry_url}} &> /dev/null
+if [ $? != 0 ]; then
+    echo "!!!Error: Login failed."
+    exit 1
+fi
+
+#push image
+docker tag  $IMAGE_LOCAL $IMAGE_HUB &&
+docker push $IMAGE_HUB &&
+docker rmi  $IMAGE_HUB
+if [ $? != 0 ]; then
+    echo "!!!Error: Push image failed."
+    exit 1
+fi
+
+FINISH=$(date +"%s")
+echo
+echo "##### Time elapsed ($(($FINISH - $START)) = $(($BUILD_COMPLETE - $START)) + $(($FINISH - $BUILD_COMPLETE)))"
+exit 0

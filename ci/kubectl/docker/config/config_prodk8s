@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    api-version: v1
+    insecure-skip-tls-verify: true
+    server: "https://114.116.248.176:8080/r/projects/1a7/kubernetes:6443"
+  name: "saas-prod"
+contexts:
+- context:
+    cluster: "saas-prod"
+    user: "saas-prod"
+  name: "saas-prod"
+current-context: "saas-prod"
+users:
+- name: "saas-prod"
+  user:
+    token: "QmFzaWMgTkRRMlJURkROREZHTWtJeE9EWkdORVE0UTBVNlZtTmtTRUp3YjFObGNYZEJOM0V5WWsxV2NsbHZXV3BTVEV4T1VITllNV016YTB0TWMydHFhdz09"

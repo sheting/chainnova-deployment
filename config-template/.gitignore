@@ -1,0 +1,6 @@
+test/build_image.sh
+test/mysql-deployment.yaml
+test/peer0-deployment.yaml
+test/execute
+baas-config.yaml
+htpasswd

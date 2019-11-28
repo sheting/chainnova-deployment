@@ -1,0 +1,61 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: wordpress-db
+  namespace: chainnova
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        common.service: wordpress-db
+    spec:
+#      tolerations:
+#      - key: "node.kubernetes.io/disk-pressure"
+#        operator: "Equal"
+#        value: "value"
+#        effect: "NoSchedule"
+      containers:
+      - name: wordpress-db
+        image: {{(datasource "common-config").Registry_url}}/mariadb:10.3.15
+        imagePullPolicy: Always
+#        command: ["/bin/sh"]
+#        args: ["-c", "mysqld  --user=root --character-set-server=utf8 --collation-server=utf8_unicode_ci"]
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: example
+        - name: MYSQL_DATABASE
+          value: wordpress
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: ebs-mysql-storage
+          subPath: workpress-db/
+      imagePullSecrets:
+        - name: hub-secret
+      restartPolicy: Always
+      volumes:
+      - name: ebs-mysql-storage
+        nfs:
+          server: 172.31.25.118
+          path: /home/ubuntu/opt/nfs/sharedir/chainnova/
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: chainnova
+spec:
+#  type: NodePort
+  ports:
+  - name: "mysql"
+    port: 3306
+    targetPort: 3306
+#    nodePort: 31011
+  selector:
+    common.service: wordpress-db

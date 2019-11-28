@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flink-jobmanager-web0
+  namespace: flink
+  labels:
+    app: flink-jobmanager
+    statefulset.kubernetes.io/pod-name: flink-jobmanager-0
+spec:
+  ports:
+  - port: 8081
+    targetPort: 8081
+    nodePort: 31021
+    protocol: TCP
+    name: web
+  type: NodePort
+  selector:
+    app: flink-jobmanager
+    statefulset.kubernetes.io/pod-name: flink-jobmanager-0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flink-jobmanager-web1
+  namespace: flink
+  labels:
+    app: flink-jobmanager
+    statefulset.kubernetes.io/pod-name: flink-jobmanager-1
+spec:
+  ports:
+  - port: 8081
+    targetPort: 8081
+    nodePort: 31022
+    protocol: TCP
+    name: web
+  type: NodePort
+  selector:
+    app: flink-jobmanager
+    statefulset.kubernetes.io/pod-name: flink-jobmanager-1

@@ -1,0 +1,56 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: fastdfs
+  namespace: fastdfs
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fastdfs
+    spec:
+      nodeSelector:
+          fastdfs: "true"
+      containers:
+      - name: master
+        image: {{(datasource "common-config").Registry_url}}/chainnova/fastdfs:5.11
+        imagePullPolicy: Always
+        command: ["/bin/bash"]
+        args: ["-c","/docker-entrypoint.sh;"]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 22120
+        volumeMounts:
+        - name: storage
+          mountPath: /home/fastdfs/storage
+        - name: tracker
+          mountPath: /home/fastdfs/tracker
+      volumes:
+      - name: storage
+        hostPath: 
+          path: /home/fastdfs/storage
+      - name: tracker
+        hostPath: 
+          path: /home/fastdfs/tracker
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastdfs
+  namespace: fastdfs
+  labels:
+    app: fastdfs
+spec:
+  type: NodePort
+  ports:
+  - port: 22120
+    targetPort: 22120
+    nodePort: 32035
+  selector:
+    app: fastdfs
+

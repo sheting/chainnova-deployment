@@ -1,0 +1,11 @@
+# General
+.DS_Store
+*/.DS_Store
+
+*.log
+
+ci/kubectl/docker/config/.kube
+script/utils/pull_image.sh
+script/utils/pull_image.sh.tmpl
+script/utils/push_image.sh
+script/utils/push_image.sh.tmpl

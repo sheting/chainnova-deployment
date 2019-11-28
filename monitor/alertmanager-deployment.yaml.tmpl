@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: alertmanager
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        baas.mon.service: alertmanager
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ##HOSTNAME##
+      containers:
+      - name: alertmanager
+        image: {{(datasource "common-config").Registry_url}}/prom/alertmanager:v0.14.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - '--config.file=/etc/alertmanager/simple/simple.yml'
+        ports:
+        - containerPort: 9093
+          protocol: TCP
+        volumeMounts:
+        - mountPath: "/etc/alertmanager/simple"
+          name: configmap-volume
+      - name: dingtalk-webhook
+        image: {{(datasource "common-config").Registry_url}}/timonwong/prometheus-webhook-dingtalk:v0.3.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - '--ding.profile=webhook1={{(datasource "common-config").Monitor_alertmanager_dingtalk_webhook}}'
+        ports:
+        - containerPort: 8060
+          protocol: TCP
+      imagePullSecrets:
+      - name: hub-secret
+      volumes:
+      - name: configmap-volume
+        configMap:
+          name: alertmanager-configmap

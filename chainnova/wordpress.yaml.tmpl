@@ -1,0 +1,60 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: wordpress-app
+  namespace: chainnova
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        common.service: wordpress-app
+    spec:
+      tolerations:
+      - key: "node.kubernetes.io/disk-pressure"
+        operator: "Equal"
+        value: "value"
+        effect: "NoSchedule"
+      containers:
+      - name: wordpress-app
+        image: {{(datasource "common-config").Registry_url}}/wordpress:4
+        imagePullPolicy: Always
+#        command: ["/bin/sh"]
+#        args: ["-c", "mysqld  --user=root --character-set-server=utf8 --collation-server=utf8_unicode_ci"]
+        env:
+        - name: WORDPRESS_DB_PASSWORD
+          value: example
+        - name: MYSQL_DATABASE
+          value: wordpress
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: "/var/www/html/news"
+          name: ebs-wordpress-storage
+          subPath: workpress-news/
+      imagePullSecrets:
+        - name: hub-secret
+      restartPolicy: Always
+      volumes:
+      - name: ebs-wordpress-storage
+        nfs:
+          server: 172.31.25.118
+          path: /home/ubuntu/opt/nfs/sharedir/chainnova/
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-app
+  namespace: chainnova
+spec:
+  type: NodePort
+  ports:
+  - name: "wordpress-app"
+    port: 80
+    targetPort: 80
+    nodePort: 31011
+  selector:
+    common.service: wordpress-app

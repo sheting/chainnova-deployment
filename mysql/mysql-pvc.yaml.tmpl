@@ -1,0 +1,14 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mysql-pvc-nfs
+  namespace: common
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{(datasource "common-config").mysql_storage}}
+  selector:
+    matchLabels:
+      app: mysql-nfs

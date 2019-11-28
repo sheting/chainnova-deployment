@@ -1,0 +1,81 @@
+stages:
+#  - notify
+  - build
+  - deploy
+
+before_script:
+  - which git
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
+  - ./deployment/ci/check_working_directory.sh
+
+after_script:
+  - ./deployment/ci/check_working_directory.sh
+
+#cache:
+#  key: maven-repo-mirror
+#  paths:
+#    - maven-repo-mirror/
+
+# build
+build:
+  stage: build
+  script:
+    - echo __CLUSTER_ENV_NAME=$VAR_CLUSTER_ENV_NAME
+    - echo __COMPONENT=$VAR_COMPONENT_NAME
+    - export GIT_TAG=$(git describe --tags)
+    - export GIT_TAG=${GIT_TAG:-'testtag'}
+    - export BRANCH=$CI_COMMIT_REF_NAME
+    - export BRANCH=$(echo $BRANCH | tr "[A-Z]" "[a-z]" | tr "\/" "-" | tr "_" "-")
+    - export GIT_COMMIT_ID=$(git rev-parse --short HEAD)
+    - export ALWAYS_PULL=${ALWAYS_PULL:-'false'}
+    - echo $GIT_TAG
+    - cd deployment/ci
+    - __CLUSTER_ENV_NAME=$VAR_CLUSTER_ENV_NAME __COMPONENT=$VAR_COMPONENT_NAME GIT_TAG=$GIT_TAG ./build.sh
+    - cd - &> /dev/null
+  tags:
+    - build
+  only:
+    - schedules
+
+# deploy
+deploy:
+  stage: deploy
+  script:
+    - export GIT_TAG=$(git describe --tags)
+    - export GIT_TAG=${GIT_TAG:-'testtag'}
+    - export BRANCH=$CI_COMMIT_REF_NAME
+    - export BRANCH=$(echo $BRANCH | tr "[A-Z]" "[a-z]" | tr "\/" "-" | tr "_" "-")
+    - export GIT_COMMIT_ID=$(git rev-parse --short HEAD)
+    - echo $GIT_TAG
+    - cd deployment/ci
+    - __CLUSTER_ENV_NAME=$VAR_CLUSTER_ENV_NAME __COMPONENT=$VAR_COMPONENT_NAME GIT_TAG=$GIT_TAG ./deploy.sh
+    - cd - &> /dev/null
+  tags:
+    - deploy
+  only:
+    - schedules
+
+# notify
+#dingtalk:
+#  stage: notify
+#  script:
+#    - cd deplpyment/ci
+#    - __DINGTALK_URL=$VAR_NOTIFY_SRV_DINGTALK_URL
+#      __CLUSTER_ENV_NAME=$VAR_CLUSTER_ENV_NAME
+#      __COMPONENT=$VAR_COMPONENT_NAME
+#      __PIPELINE_ID=$CI_PIPELINE_ID
+#      __PROJECT=$CI_PROJECT_PATH
+#      __BRANCH=$CI_COMMIT_REF_NAME
+#      __USER=$GITLAB_USER_LOGIN
+#      __COMMITMSG=$CI_COMMIT_TITLE
+#      __PIPELINE_SRC=$CI_PIPELINE_SOURCE
+#      __PIPELINE_URL=$CI_PIPELINE_URL
+#      ./notify.sh
+#    - cd - &> /dev/null
+#  when: always
+#  tags:
+#    - notify
+#  only:
+#    - schedules
+

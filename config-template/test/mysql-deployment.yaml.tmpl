@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        baas.service: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: {{(datasource "baas-config").BaaS_registry_url}}/baas/mysql:0.0.1{{(datasource "baas-config").BaaS_image_tag_suffix}}
+        imagePullPolicy: Always
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "123456"
+        ports:
+        - containerPort: 3306
+      imagePullSecrets:
+        - name: hub-secret
+      restartPolicy: Always

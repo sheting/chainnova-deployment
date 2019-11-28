@@ -1,0 +1,100 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    hyperledger.fabric.service: peer0
+  name: peer0
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        hyperledger.fabric.service: peer0
+    spec:
+      initContainers:
+      - name: fabric-template1-artifacts
+        image: {{(datasource "baas-config").BaaS_registry_url}}/baas/fabric-template1-artifacts:0.0.1
+        imagePullPolicy: Always
+        command: ["/bin/sh"]
+        args: ["-c", "cp -a /home/channel/. /mnt"]
+        volumeMounts:
+        - mountPath: /mnt
+          name: pod-shared-data
+      - name: pre-pull-ccenv
+        image: {{(datasource "baas-config").BaaS_registry_url}}/hyperledger/fabric-ccenv:x86_64-1.0.0
+        imagePullPolicy: IfNotPresent
+        command: ["echo", "SUCCESS"]
+      - name: pre-pull-baseos
+        image: {{(datasource "baas-config").BaaS_registry_url}}/hyperledger/fabric-baseos:x86_64-0.3.1
+        imagePullPolicy: IfNotPresent
+        command: ["echo", "SUCCESS"]
+      containers:
+      - name: peer0
+        image: {{(datasource "baas-config").BaaS_registry_url}}/hyperledger/fabric-peer:x86_64-1.0.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - peer
+        - node
+        - start
+        env:
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE
+          value: host
+        - name: CORE_VM_DOCKER_ATTACHSTDOUT
+          value: "true"
+        - name: CORE_LOGGING_LEVEL
+          value: DEBUG
+
+        - name: CORE_PEER_ID
+          #value: peer0.fabric.chainnova.xyz
+          value: peer0
+        - name: CORE_PEER_ADDRESS
+          #value: peer0.fabric.chainnova.xyz:7051
+          value: 127.0.0.1:31000
+        - name: CORE_PEER_NETWORKID
+          value: dev-{{(datasource "baas-config").BaaS_nested_cc_image_prefix}}
+        - name: CORE_PEER_LOCALMSPID
+          value: ChainnovaMSP
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /mnt/crypto-config/peerOrganizations/fabric.chainnova.xyz/peers/peer0.fabric.chainnova.xyz/msp
+
+        #GOSSIP
+        - name: CORE_PEER_GOSSIP_ORGLEADER
+          value: "false"
+        - name: CORE_PEER_GOSSIP_SKIPHANDSHAKE
+          value: "true"
+        - name: CORE_PEER_GOSSIP_USELEADERELECTION
+          value: "true"
+
+        #TLS
+        - name: CORE_PEER_TLS_ENABLED
+          value: "false"
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /mnt/crypto-config/peerOrganizations/fabric.chainnova.xyz/peers/peer0.fabric.chainnova.xyz/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /mnt/crypto-config/peerOrganizations/fabric.chainnova.xyz/peers/peer0.fabric.chainnova.xyz/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /mnt/crypto-config/peerOrganizations/fabric.chainnova.xyz/peers/peer0.fabric.chainnova.xyz/tls/ca.crt
+
+        ports:
+        - containerPort: 7051
+        - containerPort: 7053
+        resources: {}
+        volumeMounts:
+        - mountPath: /host/var/run/
+          name: host-vol-var-run
+        - mountPath: /mnt
+          name: pod-shared-data
+        workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+      imagePullSecrets:
+        - name: hub-secret
+      restartPolicy: Always
+      volumes:
+      - name: host-vol-var-run
+        hostPath:
+          path: /var/run/
+      - name: pod-shared-data
+        emptyDir: {}

@@ -1,0 +1,83 @@
+version: '2'
+volumes:
+  lets-encrypt:
+    external: true
+    driver: 'null'
+services:
+  # development
+  letsencrypt-demo:
+    image: vxcontrol/rancher-letsencrypt:v1.0.0
+    environment:
+      API_VERSION: Production
+      AWS_ACCESS_KEY: ##access_key##
+      AWS_SECRET_KEY: ##access_secret##
+      AZURE_CLIENT_ID: ''
+      AZURE_CLIENT_SECRET: ''
+      AZURE_RESOURCE_GROUP: ''
+      AZURE_SUBSCRIPTION_ID: ''
+      AZURE_TENANT_ID: ''
+      CERT_NAME: demo
+      CLOUDFLARE_EMAIL: ''
+      CLOUDFLARE_KEY: ''
+      DNSIMPLE_EMAIL: ''
+      DNSIMPLE_KEY: ''
+      DNS_RESOLVERS: 8.8.8.8:53,8.8.4.4:53
+      DOMAINS: '*.demo.chainnova.xyz'
+      DO_ACCESS_TOKEN: ''
+      DYN_CUSTOMER_NAME: ''
+      DYN_PASSWORD: ''
+      DYN_USER_NAME: ''
+      EMAIL: xiewenjie@chainnova.com
+      EULA: 'Yes'
+      GANDI_API_KEY: ''
+      OVH_APPLICATION_KEY: ''
+      OVH_APPLICATION_SECRET: ''
+      OVH_CONSUMER_KEY: ''
+      PROVIDER: Route53
+      PUBLIC_KEY_TYPE: RSA-2048
+      RENEWAL_PERIOD_DAYS: '20'
+      RENEWAL_TIME: '23'
+      VULTR_API_KEY: ''
+    volumes:
+    - /var/lib/rancher:/var/lib/rancher
+    labels:
+      io.rancher.container.agent.role: environment
+      io.rancher.container.create_agent: 'true'
+  letsencrypt-rancher:
+    image: vxcontrol/rancher-letsencrypt:v1.0.0
+    environment:
+      API_VERSION: Production
+      AWS_ACCESS_KEY: AKIAIIGJUNYQIYCO5MYQ
+      AWS_SECRET_KEY: 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
+      AZURE_CLIENT_ID: ''
+      AZURE_CLIENT_SECRET: ''
+      AZURE_RESOURCE_GROUP: ''
+      AZURE_SUBSCRIPTION_ID: ''
+      AZURE_TENANT_ID: ''
+      CERT_NAME: rancher
+      CLOUDFLARE_EMAIL: ''
+      CLOUDFLARE_KEY: ''
+      DNSIMPLE_EMAIL: ''
+      DNSIMPLE_KEY: ''
+      DNS_RESOLVERS: 8.8.8.8:53,8.8.4.4:53
+      DOMAINS: '*.chainnova.xyz'
+      DO_ACCESS_TOKEN: ''
+      DYN_CUSTOMER_NAME: ''
+      DYN_PASSWORD: ''
+      DYN_USER_NAME: ''
+      EMAIL: xiewenjie@chainnova.com
+      EULA: 'Yes'
+      GANDI_API_KEY: ''
+      OVH_APPLICATION_KEY: ''
+      OVH_APPLICATION_SECRET: ''
+      OVH_CONSUMER_KEY: ''
+      PROVIDER: Route53
+      PUBLIC_KEY_TYPE: RSA-2048
+      RENEWAL_PERIOD_DAYS: '20'
+      RENEWAL_TIME: '23'
+      VULTR_API_KEY: ''
+    volumes:
+    - /var/lib/rancher:/var/lib/rancher
+    labels:
+      io.rancher.container.agent.role: environment
+      io.rancher.container.create_agent: 'true'

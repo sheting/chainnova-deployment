@@ -1,0 +1,22 @@
+apiVersion: v1
+clusters:
+- cluster:
+    server: https://cci.cn-north-1.myhuaweicloud.com
+  name: hw-cci
+contexts:
+- context:
+    cluster: hw-cci
+
+    user: hw-cert
+  name: hw-cci-context
+current-context: hw-cci-context
+kind: Config
+preferences: {}
+users:
+- name: hw-cert
+  user:
+    auth-provider:
+      config:
+        ak: 6KLZDA37VNPE2XR72P8X
+        sk: EpMXpKQf7pv1axpTndJbrk1HrS9t9fnJFHEXk3Ig
+      name: hws

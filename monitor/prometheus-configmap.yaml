@@ -1,0 +1,217 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-configmap
+data:
+  prometheus.yml: |-
+    global:
+      scrape_interval:     15s
+      evaluation_interval: 15s
+    #  external_labels:
+    
+    #      monitor: 'exporter-metrics'
+    
+    
+    rule_files:
+    - "os.rules.yml"
+    - "container.rules.yml"
+    #- "os.rules"
+    
+    scrape_configs:
+    - job_name: 'Prometheus'
+      static_configs:
+        - targets:
+          - '127.0.0.1:9090'
+
+    - job_name: 'KubernetesNodeExporter'
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+        action: keep
+        regex: baas-mon;node-exporter
+
+    - job_name: 'Kubernetes-cadvisor'
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - source_labels: [__address__]
+        regex: (.+):(.+)
+        action: replace
+        target_label: __address__
+        replacement: $1:4194
+      - action: replace
+        target_label: __scheme__
+        replacement: http
+      - action: labelmap
+        regex: __meta_kubernetes_pod_node_label_(.+)
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
+#    - job_name: 'KubernetesNode'
+#      kubernetes_sd_configs:
+#      - role: node
+#
+#    - job_name: 'KubernetesService'
+#      kubernetes_sd_configs:
+#      - role: service
+#
+#    - job_name: 'K8sHostsMetrics'
+#      static_configs:
+#        - targets:
+#          - '10.210.1.2:9100'
+#          - '10.210.1.20:9100'
+#      #kubernetes_sd_configs:
+#      #- api_servers:
+#      #  - 'https://rancher.chainnova.xyz/r/projects/1a18378/kubernetes'
+#      #  role: node
+#
+#      #basic_auth:
+#      #  username: 82EE48597FA2A764B45D
+#      #  password: caK8qYsu8ij1VPLYMCPCU1pkF72u35UrbJK9NRDY
+
+  os.rules.yml: |-
+    groups:
+    - name: os.rules
+      rules:
+      - alert: InstanceDown
+        expr: up == 0
+        labels:
+          severity: High
+      - alert: DiskLoadHigh
+        expr: 100 - (100 * node_filesystem_avail{mountpoint!~"/rootfs/var/lib/(docker/aufs|rancher).*",mountpoint!~"/rootfs/var/lib/kubelet.*",mountpoint=~"/rootfs.*"}
+          / node_filesystem_size) >= 90
+        for: 1m
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 99.0}}Disaster{{else
+            if gt $percentage 90.0}}High{{else if gt $percentage 80.0}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          usage: 'disk is used {{$value}}%'
+      - alert: MemLoadHigh
+        expr: 100 - (100 * (node_memory_MemAvailable or (node_memory_MemFree + node_memory_Buffers
+          + node_memory_Cached)) / node_memory_MemTotal) >= 80
+        for: 1m
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 98.0}}Disaster{{else
+            if gt $percentage 95.0}}High{{else if gt $percentage 90.0}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          usage: 'memory is used {{$value}}%'
+      - alert: CpuLoadHigh
+        expr: node_load1 / count(count(node_cpu) BY (job, instance, cpu)) BY (job, instance)
+          > 3.0
+        for: 1m
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 2.0}}Disaster{{else
+            if gt $percentage 1.0}}High{{else if gt $percentage 0.8}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          summary: 'Load1: {{ printf `node_load1{instance="%s"}` $labels.instance | query
+            | first | value }}, CPUs: {{ printf `count by(job, instance)(count by(job,
+            instance, cpu)(node_cpu{instance="%s"}))` $labels.instance | query | first
+            | value }}'
+  
+  #
+  # 容器监控告警规则配置文件
+  # 检查项:cpu使用率,内存使用量,网络发送速率,网络接收速率
+  #
+  container.rules.yml: |-
+    groups:
+    - name: container.rules
+      rules:
+      - alert: ContianerCpuUsageRateHigh
+        expr: (sum(irate(container_cpu_usage_seconds_total{namespace="baas",pod_name=~"platform.*"}[5m])) by(device,instance,job,pod_name,namespace)) * 100
+              > 10
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 50.0}}Disaster{{else
+                    if gt $percentage 30.0}}High{{else if gt $percentage 20.0}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          usage: 'cpu usage rate in 5mins is {{$value}}%'
+      - alert: ContianerMemUsageHigh
+        expr: (sum(container_memory_usage_bytes{namespace="baas",pod_name=~"platform-server.*"}) by(device,instance,job,pod_name,namespace)) / (1024 * 1024)
+              > 100
+        for: 1m
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 500.0}}Disaster{{else
+                     if gt $percentage 400.0}}High{{else if gt $percentage 300.0}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          summary: 'memory used by container is {{$value}}Mb'
+      - alert: ContianerNetworkTxRateHigh
+        expr: (sum(rate(container_network_transmit_bytes_total{namespace="baas",pod_name=~"platform-server.*"}[1m]))by(device,instance,job,pod_name,namespace)) / 1024
+              > 1024
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 2048.0}}Disaster{{else
+                     if gt $percentage 1536.0}}High{{else if gt $percentage 1024.0}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          usage: 'network Tx rate in 1mins is {{$value}}Kbps'
+      - alert: ContianerNetworkRxRateHigh
+        expr: (sum(rate(container_network_receive_bytes_total{namespace="baas",pod_name=~"platform-server.*"}[1m]))by(device,instance,job,pod_name,namespace)) / 1024
+              > 1024
+        labels:
+          severity: '{{with $percentage := $value}}{{if gt $percentage 2048.0}}Disaster{{else
+                     if gt $percentage 1536.0}}High{{else if gt $percentage 1024.0}}Warning{{else}}Info{{end}}{{end}}'
+        annotations:
+          usage: 'network Rx rate in 1mins is {{$value}}Kbps'
+
+  os.rules: |-
+    # Alert for any instance that is unreachable for >5 minutes.
+    ALERT InstanceDown
+      IF up == 0
+      FOR 1m
+      LABELS { severity = "High" }
+    
+    #ALERT DiskWillFillIn7Days
+    #  IF predict_linear(disk_free[1h], 168*3600)<=0
+    #  FOR 30m
+    #  LABELS { severity = "Warning" }
+    #  ANNOTATIONS {
+    #    summary = "{{$labels.path}} on {{ $labels.instance }} will be full in one week"
+    #}
+    #ALERT DiskWillFillIn1Day
+    #  IF predict_linear(disk_free[4h], 24*3600)<=0
+    #  FOR 15m
+    #  LABELS { severity = "High" }
+    #  ANNOTATIONS {
+    #    summary = "{{$labels.path}} on {{ $labels.instance }} will be full in one day"
+    #}
+    #ALERT DiskWillFillIn4Hours
+    #  IF predict_linear(disk_free[1h], 4*3600)<=0
+    #  FOR 5m
+    #  LABELS { severity = "Disaster" }
+    #  ANNOTATIONS {
+    #    summary = "{{$labels.path}} on {{ $labels.instance }} will be full in four hours"
+    #}
+    
+    ALERT DiskFull
+      IF 100-(100*node_filesystem_avail{mountpoint=~"/rootfs.*",mountpoint!~"/rootfs/var/lib/kubelet.*",mountpoint!~"/rootfs/var/lib/(docker/aufs|rancher).*"}/node_filesystem_size) >= 70
+      FOR 1m
+      LABELS { severity = "{{with $percentage := $value}}{{if gt $percentage 99.0}}Disaster{{else if gt $percentage 90.0}}High{{else if gt $percentage 80.0}}Warning{{else}}Info{{end}}{{end}}" }
+      ANNOTATIONS {
+        usage = "{{$value}}%",
+      }
+    
+    # ALERT MemWillFullIn1Day
+    #  IF predict_linear(mem_available[1h], 24*3600)<=0
+    #  FOR 15m
+    #  LABELS { severity = "High" }
+    #  ANNOTATIONS {
+    #    summary = "Mem on {{ $labels.instance }} will be full in one day"
+    # }
+    
+    ALERT MemFull
+      IF 100-(100*(node_memory_MemAvailable or (node_memory_MemFree+node_memory_Buffers+node_memory_Cached))/node_memory_MemTotal) >= 80
+      FOR 1m
+      LABELS { severity = "{{with $percentage := $value}}{{if gt $percentage 98.0}}Disaster{{else if gt $percentage 95.0}}High{{else if gt $percentage 90.0}}Warning{{else}}Info{{end}}{{end}}" }
+      ANNOTATIONS {
+        usage = "{{$value}}%",
+      }
+    
+    ALERT LoadHigh
+      IF node_load1/count by(job, instance)(count by(job, instance, cpu)(node_cpu)) > 0.5
+      FOR 1m
+      LABELS { severity = "{{with $percentage := $value}}{{if gt $percentage 2.0}}Disaster{{else if gt $percentage 1.0}}High{{else if gt $percentage 0.8}}Warning{{else}}Info{{end}}{{end}}" }
+      ANNOTATIONS {
+        summary = "Load1: {{ printf `node_load1{instance=\"%s\"}` $labels.instance | query | first | value }}, CPUs: {{ printf `count by(job, instance)(count by(job, instance, cpu)(node_cpu{instance=\"%s\"}))` $labels.instance | query | first | value }}",
+      }

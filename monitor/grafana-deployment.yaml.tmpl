@@ -1,0 +1,26 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        baas.mon.service: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: {{(datasource "common-config").Registry_url}}/grafana/grafana:4.6.3
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: GF_AUTH_BASIC_ENABLED
+          value: "false"
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          value: Admin
+        ports:
+        - containerPort: 3000
+      imagePullSecrets:
+      - name: hub-secret

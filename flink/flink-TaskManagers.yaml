@@ -1,0 +1,108 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: flink-taskmanager
+  namespace: flink
+spec:
+  serviceName: flink-taskmanager
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: flink-taskmanager
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - flink
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: flink-taskmanager
+        imagePullPolicy: IfNotPresent
+        image: flink
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "300m"
+        ports:
+        - containerPort: 6121
+          name: data
+        - containerPort: 6122
+          name: rpc
+        env:
+        - name : JOB_MANAGER_RPC_ADDRESS
+          value: "flink-jobmanager.flink.svc.cluster.local"
+          #,flink-jobmanager-1.flink-jobmanager.flink.svc.cluster.local
+        command:
+        - sh
+        - -c
+        - /docker-entrypoint.sh taskmanager
+#        readinessProbe:
+#          exec:
+#            command:
+#            - "zkOk.sh"
+#          initialDelaySeconds: 10
+#          timeoutSeconds: 5
+#        livenessProbe:
+#          exec:
+#            command:
+#            - "zkOk.sh"
+#          initialDelaySeconds: 10
+#          timeoutSeconds: 5
+        volumeMounts:
+        - name: datadir
+          mountPath: /flink/
+#        - name: flink-configmap
+#          mountPath: /opt/flink/conf/flink-conf.yaml
+#          subPath: flink-conf.yaml
+#      securityContext:
+#        runAsUser: 1000
+#        fsGroup: 1000
+<<<<<<< HEAD
+      volumes:
+      - name: datadir
+        emptyDir: {}
+#      - name: flink-configmap
+#        configMap:
+#          name: flink-configmap
+
+=======
+#      volumes:
+#      - name: datadir
+#        emptyDir: {}
+#      - name: flink-configmap
+#        configMap:
+#          name: flink-configmap
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+      annotations:
+        volume.beta.kubernetes.io/storage-class: "nfs"
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+>>>>>>> d6a0df20c92a9177012385b8adf451ded50fa8f4
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flink-taskmanager
+  namespace: flink
+  labels:
+    app: flink-taskmanager
+spec:
+  ports:
+  - port: 6121
+    name: data
+  - port: 6122
+    name: rpc
+  #clusterIP: None
+  selector:
+    app: flink-taskmanager

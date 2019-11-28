@@ -1,0 +1,7 @@
+# service as static
+ARG BASE_TAG
+ARG BASE_REPOSITORY
+FROM ${BASE_REPOSITORY}:${BASE_TAG}
+ARG MODE_TYPE
+COPY ./Docker/nginx/${MODE_TYPE}.conf /etc/nginx/conf.d/default.conf
+COPY ./www/ /srv/web-app

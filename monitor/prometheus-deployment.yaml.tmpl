@@ -1,0 +1,47 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        baas.mon.service: prometheus
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ##HOSTNAME##
+      containers:
+      #- image: hub.chainnova.xyz:5000/prom/prometheus:v1.8.0
+      - image: {{(datasource "common-config").Registry_url}}/prom/prometheus:v2.1.0
+        imagePullPolicy: IfNotPresent
+        name: prometheus
+        args:
+        #- "-config.file=/etc/prometheus/prometheus.yml"
+        #- "-storage.local.path=/prometheus"
+
+        - "--config.file=/etc/prometheus/prometheus.yml"
+        - "--web.external-url=http://{{(datasource "common-config").Node_external_ip_for_nodeport}}:31016/"
+        - "--storage.tsdb.path=/prometheus"
+
+        #- "-alertmanager.url=http://AlertManager:9093"
+        #- "-web.external-url=https://pm.chainnova.xyz/"
+        #- "-storage.local.retention=24h"
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        volumeMounts:
+        - mountPath: "/etc/prometheus"
+          name: configmap-volume
+        - mountPath: "/prometheus"
+          name: data-volume
+      imagePullSecrets:
+      - name: hub-secret
+      volumes:
+      - name: configmap-volume
+        configMap:
+          name: prometheus-configmap
+      - name: data-volume
+        hostPath:
+          #type: DirectoryOrCreate
+          path: {{(datasource "common-config").Monitor_prometheus_hostpath}}

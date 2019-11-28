@@ -1,0 +1,58 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: common
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        common.service: mysql
+    spec:
+      nodeSelector:
+        always_app: "true"
+      containers:
+      - name: mysql
+        image: {{(datasource "common-config").Registry_url}}/mysql:5.7
+        imagePullPolicy: Always
+#        command: ["/bin/sh"]
+#        args: ["-c", "mysqld  --user=root --character-set-server=utf8 --collation-server=utf8_unicode_ci"]
+        resources: 
+          requests: 
+            memory: "768Mi"
+            cpu: "128m"
+        env:
+        - name: character-set-server
+          value: utf8mb4
+        - name: MYSQL_ROOT_PASSWORD
+          value: TestEnv.Chainnova.2019
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+#        - mountPath: "/docker-entrypoint-initdb.d"
+#          name: configmap-volume
+        - mountPath: "/var/lib/mysql"
+          name: nfs-mysql-storage
+        - mountPath: "/etc/mysql/my.cnf"
+          name: cnf-configmap-volume
+          subPath: my.cnf
+        - mountPath: "/etc/mysql/conf.d/mysqlutf8.cnf"
+          name: utf8-configmap-volume
+          subPath: mysqlutf8.cnf
+      imagePullSecrets:
+        - name: hub-secret
+      restartPolicy: Always
+      volumes:
+      - name: cnf-configmap-volume
+        configMap:
+          name: mysql-mycnf-configmap
+      - name: utf8-configmap-volume
+        configMap:
+          name: mysql-utf8-configmap
+      - name: nfs-mysql-storage
+        nfs:
+          server: {{(datasource "common-config").Nfs_server}}
+          path: {{(datasource "common-config").Mysql_nfs_path}}

@@ -1,0 +1,25 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: es-clean-cronjob
+  namespace: elk
+spec:
+  # min(1~59, every minute:/1 ) hour(0 ~ 23) date(1~31) month(1~21) week(0~6,0:Sun) 
+  schedule: "00 03 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: es-clean-cronjob
+            image: 370307265965.dkr.ecr.cn-north-1.amazonaws.com.cn/chainnova/cronjob-script:0.0.1
+            args:
+            #- /bin/sh
+            #- -c
+            #- date; echo Hello from the Kubernetes cluster
+            #- DATA=$(date -d "1 week ago" +%Y-%m-%d); echo "${DATA}"; curl -XDELETE 'http://elasticsearch-0.es:9200/*-logstash-${DATA}'
+            - home/es-cronjob-script/es-clean.sh
+          restartPolicy: OnFailure
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3

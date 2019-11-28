@@ -1,0 +1,47 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+spec:
+  template:
+    metadata:
+      labels:
+        baas.mon.service: node-exporter
+    spec:
+      containers:
+      - image: {{(datasource "common-config").Registry_url}}/prom/node-exporter:v0.15.2
+        imagePullPolicy: IfNotPresent
+        name: node-exporter
+        args:
+          - --collector.filesystem.ignored-mount-points
+          - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)|(/rootfs/home/.*)|(/rootfs/var/lib/kubelet/.*)($$|/)"
+          - --path.procfs=/host/proc
+          - --path.sysfs=/host/sys
+        ports:
+        - containerPort: 9100
+          hostPort: 9100
+          name: scrape
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+      hostNetwork: true
+      hostPID: true
+      imagePullSecrets:
+      - name: hub-secret
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: rootfs
+          hostPath:
+            path: /

@@ -1,0 +1,24 @@
+ARG BASE_REPOSITORY
+ARG BASE_TAG
+FROM ${BASE_REPOSITORY}:${BASE_TAG}
+
+ARG JAR_NAME
+ARG MODE_TYPE
+ARG PORT
+
+RUN mkdir -p /home/logs
+
+ENV MODE_TYPE=${MODE_TYPE}
+ENV PORT=${PORT}
+ENV JAR_NAME=${JAR_NAME}
+
+COPY target/${JAR_NAME} /home/${JAR_NAME}
+COPY deploy/boot.sh /home/boot.sh
+
+WORKDIR /home
+VOLUME ["/home/logs"]
+
+ENTRYPOINT ["/bin/sh"]
+CMD ["-c", "MODE_TYPE=$MODE_TYPE PORT=$PORT JAR_NAME=$JAR_NAME /home/boot.sh"]
+
+EXPOSE ${PORT}

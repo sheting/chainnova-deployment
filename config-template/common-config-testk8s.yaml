@@ -1,0 +1,28 @@
+#global 
+#!!!Must can't be removed
+Registry_url: ##Registry_url##
+Registry_user: ##Registry_user##
+Registry_password: ##Registry_password##
+Hub_secret: ##Hub_secret_value##
+Registry_type: ##Registry_type##
+Image_tag_suffix: ##IMAGE_TAG_SUFFIX##
+Target_registry: ecr
+Image_tag: ##IMAGE_TAG##
+Node_external_ip_for_nodeport: 114.116.243.12
+
+#monitor
+Monitor_prometheus_hostpath: /home/ubuntu/opt/prometheus
+Monitor_alertmanager_dingtalk_webhook: https://oapi.dingtalk.com/robot/send?access_token=9e483bb606fdcfc310a3a6cd3e9454e24b75fa7e8264ab47c0c3518942520a9a
+
+#mysql
+mysql_storage: 50G
+
+#nfs server internal ip
+BaaS_nfs_server: 192.168.193.109
+Nfs_server: 192.168.193.109
+
+#mysql nfs path
+Mysql_nfs_path: /home/opt/nfs/sharedir/mysql
+
+#nfs storage class path
+StorageClass_nfs_path: /home/opt/nfs/sharedir/nfs-storageclass

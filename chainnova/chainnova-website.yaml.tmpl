@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: chainnova-website
+  namespace: chainnova
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        service: chainnova-website
+    spec:
+      containers:
+      - name: chainnova-website
+        image: {{(datasource "common-config").Registry_url}}/basicfe/chainnova-website:0.0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - mountPath: "/web_download"
+            name: data-volume 
+            subPath: fe-download/
+      imagePullSecrets:
+        - name: hub-secret
+      restartPolicy: Always
+      volumes:
+      - name: data-volume
+        nfs:
+          server: 172.31.25.118
+          path: /home/ubuntu/opt/nfs/sharedir/chainnova/
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chainnova-website
+  namespace: chainnova
+spec:
+  type: NodePort
+  ports:
+  - name: chainnova-website
+    port: 80
+    targetPort: 80
+    nodePort: 31010
+  selector:
+    service: chainnova-website
